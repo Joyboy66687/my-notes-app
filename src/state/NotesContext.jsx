@@ -1,68 +1,82 @@
 ﻿import React, { createContext, useContext, useEffect, useMemo, useReducer } from "react";
 
-const Ctx = createContext(null);
-const uid = () => String(Date.now()) + "-" + Math.random().toString(36).slice(2, 8);
+const NotesCtx = createContext();
 
-const slugify = (s) =>
-  (s || "note").toString().trim().toLowerCase()
-    .replace(/[^\p{L}\p{N}\s-]/gu, "")
-    .replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+const initial = () => {
+  // загрузка из localStorage
+  try {
+    const raw = localStorage.getItem("notes-state-v1");
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  const n1 = { id: "1", title: "Первая заметка", content: "Привет! Это [[Вторая заметка]].", starred: false, links: [] };
+  const n2 = { id: "2", title: "Вторая заметка", content: "Связь с [[Первая заметка]].", starred: true, links: [] };
+  return { notes: [n1, n2], currentId: "1" };
+};
 
-function uniqueSlug(base, notes, selfId){
-  let s = slugify(base || "note"); let i=2;
-  while (notes.some(n => n.slug === s && n.id !== selfId)) s = `${slugify(base)}-${i++}`;
-  return s || "note";
+function slugifyTitle(t) {
+  return t.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^\w\-]+/g, "");
 }
 
-const now = Date.now();
-const defaultNotes = [
-  { id:"1", title:"Первая заметка", slug:"pervaya-zametka", content:"Добро пожаловать!\n\nЭто первая заметка.", starred:false, createdAt:now, updatedAt:now },
-  { id:"2", title:"Вторая заметка", slug:"vtoraya-zametka", content:"А это — вторая.", starred:false, createdAt:now, updatedAt:now },
-];
+function reducer(state, action) {
+  switch (action.type) {
+    case "SET_CURRENT":
+      return { ...state, currentId: action.id };
 
-const initial = (() => {
-  const saved = localStorage.getItem("notes");
-  return { notes: saved ? JSON.parse(saved) : defaultNotes, currentId: "1" };
-})();
-
-function reducer(state, action){
-  switch(action.type){
-    case "SET_CURRENT": return { ...state, currentId: action.id };
     case "ADD_NOTE": {
+      const id = String(Date.now());
       const title = action.title || "Новая заметка";
-      const note = { id:uid(), title, slug:uniqueSlug(title, state.notes), content:"", starred:false, createdAt:Date.now(), updatedAt:Date.now() };
-      return { ...state, notes:[note, ...state.notes], currentId:note.id };
+      const note = { id, title, content: "", starred: false, links: [] };
+      return { ...state, notes: [note, ...state.notes], currentId: id };
     }
+
     case "ADD_TODAY": {
-      const title = `Дневник ${new Date().toLocaleDateString()}`;
-      const note = { id:uid(), title, slug:uniqueSlug(title, state.notes), content:`# ${title}\n\n`, starred:false, createdAt:Date.now(), updatedAt:Date.now() };
-      return { ...state, notes:[note, ...state.notes], currentId:note.id };
+      const d = new Date();
+      const title = `Сегодня (${d.toLocaleDateString()})`;
+      const id = String(Date.now());
+      const note = { id, title, content: "", starred: false, links: [] };
+      return { ...state, notes: [note, ...state.notes], currentId: id };
     }
+
     case "UPDATE_NOTE": {
-      const notes = state.notes.map(n => {
-        if (n.id !== action.id) return n;
-        const patch = { ...action.patch, updatedAt:Date.now() };
-        if (patch.title && patch.title !== n.title)
-          patch.slug = uniqueSlug(patch.title, state.notes, n.id);
-        return { ...n, ...patch };
-      });
-      return { ...state, notes };
+      const { id, patch } = action;
+      return {
+        ...state,
+        notes: state.notes.map(n => (n.id === id ? { ...n, ...patch } : n)),
+      };
     }
-    case "TOGGLE_STAR":
-      return { ...state, notes: state.notes.map(n => n.id === action.id ? { ...n, starred:!n.starred } : n) };
-    default: return state;
+
+    case "TOGGLE_STAR": {
+      const id = action.id;
+      return {
+        ...state,
+        notes: state.notes.map(n => (n.id === id ? { ...n, starred: !n.starred } : n)),
+      };
+    }
+
+    case "DELETE_NOTE": {
+      const id = action.id;
+      const left = state.notes.filter(n => n.id !== id);
+      const currentId = state.currentId === id ? (left[0]?.id || null) : state.currentId;
+      return { ...state, notes: left, currentId };
+    }
+
+    default:
+      return state;
   }
 }
 
-export function NotesProvider({ children }){
-  const [state, dispatch] = useReducer(reducer, initial);
-  useEffect(() => { localStorage.setItem("notes", JSON.stringify(state.notes)); }, [state.notes]);
+export function NotesProvider({ children }) {
+  const [state, dispatch] = useReducer(reducer, null, initial);
 
-  const current = useMemo(() => state.notes.find(n => n.id === state.currentId) || state.notes[0], [state]);
-  const slugToId = useMemo(() => {
-    const m = new Map(); state.notes.forEach(n => m.set(n.slug, n.id)); return m;
-  }, [state.notes]);
+  useEffect(() => {
+    localStorage.setItem("notes-state-v1", JSON.stringify(state));
+  }, [state]);
 
-  return <Ctx.Provider value={{ state, dispatch, current, slugToId }}>{children}</Ctx.Provider>;
+  const api = useMemo(() => ({ state, dispatch, slugifyTitle }), [state]);
+
+  return <NotesCtx.Provider value={api}>{children}</NotesCtx.Provider>;
 }
-export const useNotes = () => useContext(Ctx);
+
+export function useNotes() {
+  return useContext(NotesCtx);
+}
