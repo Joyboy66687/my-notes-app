@@ -69,3 +69,9 @@ export default function App() {
     </NotesProvider>
   );
 }
+
+<div className="flex h-screen app-fade">
+  {/* … */}
+  <aside className="w-72 p-3 glass hidden lg:flex flex-col">…</aside>
+  <main className="flex-1 glass">…</main>
+</div>

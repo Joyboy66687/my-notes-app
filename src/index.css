@@ -1,102 +1,61 @@
-:root {
-  --bg: #ffffff;
-  --text: #0f172a;
-  --panel: #f8fafc;
-  --panel2: #eef2f7;
-  --border: #e5e7eb;
-  --muted: #64748b;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Aurora фон */
+.bg-aurora {
+  background: linear-gradient(120deg,#0f172a,#111827,#1e293b);
+  background-size: 200% 200%;
+  animation: aurora 18s ease infinite;
+}
+@keyframes aurora {
+  0%,100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
-:root[data-theme="dark"] {
-  --bg: #0b0f14;
-  --text: #e5e7eb;
-  --panel: #0f172a;
-  --panel2: #111827;
-  --border: #1f2937;
-  --muted: #94a3b8;
+/* Мягкие блобы света */
+.light-blob {
+  position: absolute;
+  width: 60vmax; height: 60vmax;
+  filter: blur(120px);
+  border-radius: 50%;
+  opacity: 0.2;
+  pointer-events: none;
+}
+.blob1 { top: -20%; left: -20%; background: #6366f1; animation: float 12s infinite ease-in-out; }
+.blob2 { bottom: -20%; right: -15%; background: #ec4899; animation: float 16s infinite ease-in-out reverse; }
+@keyframes float {
+  0%,100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(6%) translateX(3%); }
 }
 
-html, body, #root { height:100%; }
-body {
-  margin:0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+/* Стекло + подсветка рамки */
+.glass {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.15);
+  backdrop-filter: blur(18px);
+  border-radius: 1.25rem;
+  transition: all .3s ease;
+}
+.glass:hover {
+  box-shadow: 0 0 25px rgba(255,255,255,.15);
 }
 
-/* каркас */
-.app { display:flex; height:100vh; }
-.sidebar {
-  width: 280px; display:flex; flex-direction:column; gap:12px;
-  border-right:1px solid var(--border); padding:12px; background:var(--panel);
-}
-.s-head { display:flex; align-items:center; justify-content:space-between; }
-.s-title { display:flex; align-items:center; gap:8px; font-weight:700; }
-.s-actions { display:flex; gap:6px; }
-.btn-icon {
-  display:inline-flex; align-items:center; justify-content:center;
-  width:32px; height:32px; border-radius:10px; border:1px solid var(--border);
-  background:var(--bg); cursor:pointer;
-}
-.btn-icon:hover { background: var(--panel2); }
+/* Кнопки в стиле iOS */
 .btn {
-  display:flex; align-items:center; gap:8px; padding:8px 10px;
-  border:1px solid var(--border); border-radius:10px; background: var(--bg);
-  cursor:pointer;
+  @apply inline-flex items-center justify-center px-4 py-2 rounded-xl font-medium transition-all;
 }
-.btn:hover { background: var(--panel2); }
-.quick { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+.btn-primary {
+  background: linear-gradient(135deg,#6366f1,#3b82f6);
+  color: white;
+}
+.btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
 
-.section { margin-top:8px; }
-.section-title { font-size:12px; color:var(--muted); margin:6px 4px; }
-.list { display:flex; flex-direction:column; gap:6px; }
-.note-row { display:flex; align-items:center; gap:6px; }
-.note-btn {
-  flex:1; text-align:left; padding:8px 10px; border:1px solid var(--border);
-  border-radius:10px; background:var(--bg); cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+/* Анимация появления секций */
+.fade-in {
+  animation: fadeInUp .5s ease forwards;
 }
-.note-btn:hover { background: var(--panel2); }
-.note-btn.is-active { background:var(--panel2); border-color:var(--border); }
-.star-btn { width:32px; height:32px; border:1px solid var(--border); background:var(--bg); border-radius:10px; cursor:pointer; }
-.star-btn:hover { background: var(--panel2); }
-
-.main { flex:1; display:flex; min-width:0; }
-.panel {
-  flex:1; display:flex; flex-direction:column; gap:12px; padding:16px;
+@keyframes fadeInUp {
+  from { opacity:0; transform:translateY(12px); }
+  to   { opacity:1; transform:translateY(0); }
 }
-
-/* Editor */
-.title {
-  flex:1; font-size:20px; font-weight:700; background:transparent; border:1px solid var(--border);
-  border-radius:10px; padding:8px 10px; outline:none;
-}
-.area {
-  flex:1; background:transparent; border:1px solid var(--border); border-radius:12px; padding:12px;
-  outline:none; resize:none;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-/* бэйджик источника */
-.badge {
-  font-size:12px; color:var(--muted); border:1px dashed var(--border);
-  padding:4px 8px; border-radius:999px;
-}
-
-/* Overlay + модалки/палитра — у тебя уже есть эти классы, пусть будут */
-.overlay{
-  position:fixed; inset:0; background:rgba(0,0,0,.5);
-  display:grid; place-items:center; z-index:50;
-}
-.modal{
-  width:min(680px, 92vw); background:var(--bg); color:var(--text);
-  border:1px solid var(--border); border-radius:16px; padding:16px;
-}
-
-/* Command palette */
-.cp-box{ width:min(760px,94vw); border-radius:16px; overflow:hidden; background:var(--bg); border:1px solid var(--border) }
-.cp-search{ padding:10px 12px; border-bottom:1px solid var(--border) }
-.cp-input{ width:100%; font:16px system-ui; border:1px solid var(--border); border-radius:10px; padding:8px 10px; outline:none; background:transparent }
-.cp-list{ max-height:60vh; overflow:auto }
-.cp-item{ width:100%; text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); background:transparent; cursor:pointer }
-.cp-item:hover{ background:var(--panel) }
-.cp-footer{ display:flex; justify-content:flex-end; gap:8px; padding:8px; border-top:1px solid var(--border) }
